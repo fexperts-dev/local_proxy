@@ -18,4 +18,4 @@ Homepage = "https://github.com/fexperts-dev/local_proxy"
 Repository = "https://github.com/fexperts-dev/local_proxy"
 
 [tool.setuptools.packages.find]
-include = ["local_proxy*", "tunnel*"]
+include = ["local_proxy*"]

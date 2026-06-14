@@ -10,8 +10,7 @@ import tkinter as tk
 import urllib.request
 from tkinter import messagebox, scrolledtext, ttk
 
-from tunnel.client import setup_logging
-from tunnel.gui import (
+from .gui_helpers import (
     _GuiLogHandler,
     _LoggingToggleFilter,
     _PayloadLogFilter,
@@ -20,6 +19,7 @@ from tunnel.gui import (
     _SystemLogFilter,
     add_copyable_field,
 )
+from .logging_setup import setup_logging
 
 from .config import load_config
 from .service import LocalProxy
@@ -203,7 +203,7 @@ class LocalProxyApp:
         for w in (self.domain_entry, self.port_entry, self.lmstudio_entry):
             w.configure(state=state)
 
-    def _on_registered(self, payload: dict) -> None:
+    def _on_session_ready(self, payload: dict) -> None:
         models = _fetch_model_ids(self._config.lmstudio_url)
         models_text = ", ".join(models) if models else "(none — is LM Studio running?)"
 
@@ -234,7 +234,7 @@ class LocalProxyApp:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             self._loop = loop
-            self._proxy = LocalProxy(self._config, on_registered=self._on_registered)
+            self._proxy = LocalProxy(self._config, on_session_ready=self._on_session_ready)
             self._proxy_task = loop.create_task(self._proxy.run_forever())
             try:
                 loop.run_until_complete(self._proxy_task)

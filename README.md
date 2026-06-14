@@ -2,14 +2,14 @@
 
 Run **LM Studio** locally as an OpenAI-compatible API for **Cursor** and other IDEs — **no cloud server**, no public domain, no nginx.
 
-`local_proxy` starts a combined tunnel **server** and **client** on one machine. Your IDE talks to a fixed URL (e.g. `https://api.lmstudio.local:8443/v1`). An `/etc/hosts` entry maps that hostname to `127.0.0.1`; the proxy forwards requests to LM Studio. Streaming (SSE) is supported.
+`local_proxy` starts a local **HTTP(S) reverse proxy** on one machine. Your IDE talks to a fixed URL (e.g. `https://api.lmstudio.local:8443/v1`). An `/etc/hosts` entry maps that hostname to `127.0.0.1`; the proxy forwards requests to LM Studio. Streaming (SSE) is supported.
 
 ```
   Cursor / IDE
        │  HTTPS  https://api.lmstudio.local:8443/v1/…
        │  (/etc/hosts → 127.0.0.1)
        ▼
-  local_proxy  ── tunnel.server ◄──WS──► tunnel.client ──HTTP──►  LM Studio
+  local_proxy  ──HTTP──►  LM Studio
                (single process, one port)
 ```
 
@@ -65,7 +65,7 @@ LM Studio must be running (`http://localhost:1234` by default).
 | `--domain NAME` | Local domain from `/etc/hosts` (default: `LOCAL_DOMAIN`) |
 | `--port PORT` | Listen port (default: `8443` with TLS, `8088` without) |
 | `--lmstudio-url URL` | LM Studio base URL |
-| `--no-tls` | HTTP/WS instead of HTTPS/WSS (not recommended for Cursor) |
+| `--no-tls` | HTTP instead of HTTPS (not recommended for Cursor) |
 | `--gui` | Desktop UI (tkinter) |
 
 ---
@@ -73,15 +73,14 @@ LM Studio must be running (`http://localhost:1234` by default).
 ## Project layout
 
 ```
-local_proxy/          # Combined server + client application
-tunnel/               # Shared tunnel protocol (bundled dependency)
+local_proxy/          # Application (proxy server, CLI, GUI)
 tests/
 deploy/               # Optional launchd / systemd examples
 INSTALLATION.md
 local_proxy.env.example
 ```
 
-For a **remote AWS tunnel** (team access from anywhere), see the sibling project
+For **remote access from anywhere** (team, AWS, public domain), see the sibling project
 [fexperts-dev/reverse_https](https://github.com/fexperts-dev/reverse_https).
 
 ---

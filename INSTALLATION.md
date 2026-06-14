@@ -13,17 +13,15 @@ IDE (Cursor)
     │         Host: api.lmstudio.local  →  127.0.0.1  (/etc/hosts)
     ▼
 local_proxy (Port 8443, TLS optional)
-    ├── tunnel.server   /v1/…, /healthz, WebSocket /_tunnel
-    └── tunnel.client   ──HTTP──►  LM Studio  http://localhost:1234
+    └── HTTP-Proxy  ──►  LM Studio  http://localhost:1234
 ```
 
 | Komponente | Wo | Port | Aufgabe |
 |---|---|---|---|
-| **local_proxy** | Dein Rechner | **8443** (TLS) oder **8088** (ohne TLS) | API-Proxy + eingebetteter Tunnel-Client |
+| **local_proxy** | Dein Rechner | **8443** (TLS) oder **8088** (ohne TLS) | HTTPS-Reverse-Proxy für die IDE |
 | **LM Studio** | Dein Rechner | **1234** (localhost) | Lokales Modell, OpenAI-kompatible API |
 
-Es ist **kein** separater `tunnel.server` auf AWS und **kein** `python -m tunnel.client`
-nötig — beides läuft in einem Prozess.
+Kein AWS-Server, kein WebSocket-Tunnel, kein nginx — nur ein Python-Prozess.
 
 ---
 
@@ -111,7 +109,6 @@ LOCAL_DOMAIN=api.lmstudio.local
 LOCAL_PORT=8443
 LOCAL_PROXY_USE_TLS=true
 LMSTUDIO_URL=http://localhost:1234
-CLIENT_ID=my-laptop
 LOCAL_PROXY_DATA_DIR=~/.local_proxy
 LOCAL_PROXY_LOG_LEVEL=INFO
 ```
@@ -120,10 +117,9 @@ LOCAL_PROXY_LOG_LEVEL=INFO
 |---|---|---|---|
 | `LOCAL_DOMAIN` | Nein | `api.lmstudio.local` | Hostname aus `/etc/hosts`; CN des TLS-Zerts |
 | `LOCAL_PORT` | Nein | `8443` (TLS) / `8088` (ohne TLS) | HTTP(S)-Port von local_proxy |
-| `LOCAL_PROXY_USE_TLS` | Nein | `true` | HTTPS/WSS (für Cursor empfohlen) |
+| `LOCAL_PROXY_USE_TLS` | Nein | `true` | HTTPS (für Cursor empfohlen) |
 | `LMSTUDIO_URL` | Nein | `http://localhost:1234` | LM-Studio-Basis-URL |
-| `CLIENT_ID` | Nein | Hostname | Stabile Client-ID im Tunnel |
-| `LOCAL_PROXY_DATA_DIR` | Nein | `~/.local_proxy` | Geheimnisse, Zertifikate, Session |
+| `LOCAL_PROXY_DATA_DIR` | Nein | `~/.local_proxy` | Zertifikate, Session, Logs |
 | `LOCAL_PROXY_LOG_LEVEL` | Nein | `INFO` | Log-Level |
 | `LOCAL_PROXY_LOG` | Nein | `<data_dir>/local_proxy.log` | Log-Datei |
 | `LOCAL_PROXY_SESSION_FILE` | Nein | `<data_dir>/session.json` | Session für IDE |
@@ -141,8 +137,8 @@ set +a
 python -m local_proxy
 ```
 
-**`registration.secret`** wird beim ersten Lauf automatisch unter
-`LOCAL_PROXY_DATA_DIR` erzeugt — manuell setzen ist nicht nötig.
+Beim Start schreibt local_proxy automatisch **`session.json`** mit Base URL und
+API Key nach `LOCAL_PROXY_DATA_DIR` — manuell setzen ist nicht nötig.
 
 ---
 
@@ -262,19 +258,18 @@ source .venv/bin/activate
 python -m local_proxy
 ```
 
-Nach erfolgreicher Registrierung erscheint u. a.:
+Nach dem Start erscheint u. a.:
 
 ```
 === IDE configuration ===
 Base URL:  https://api.lmstudio.local:8443/v1
-API Key:   <session_proxy_token>
+API Key:   <proxy_token>
 ```
 
 Dieselben Werte stehen in **`~/.local_proxy/session.json`**:
 
 ```json
 {
-  "client_id": "my-laptop",
   "proxy_token": "…",
   "api_base_url": "https://api.lmstudio.local:8443/v1",
   "target": "http://localhost:1234"
@@ -291,7 +286,7 @@ python -m local_proxy --gui
 ```
 
 Die GUI zeigt Domain, Port, LM-Studio-URL, Base URL, API Key und verfügbare Modell-IDs.
-Logs: System, Anfragen, Payload, Response (wie bei `tunnel.gui`).
+Logs: System, Anfragen, Payload, Response.
 
 ### CLI-Overrides
 
@@ -583,9 +578,9 @@ systemctl --user enable --now local-proxy
 - Terminal-Test: `curl --noproxy '*' -sk …/healthz` vs. `curl -sk …/healthz`
 - Cursor nach Änderungen **vollständig** neu gestartet?
 
-### „client_connected": false` in `/healthz`
+### `"client_connected": false` in `/healthz`
 
-- Tunnel-Client startet im selben Prozess — bei Fehlern Log prüfen: `~/.local_proxy/local_proxy.log`
+- Sollte nicht vorkommen, solange local_proxy läuft — bei Fehlern Log prüfen: `~/.local_proxy/local_proxy.log`
 - Port-Konflikt: anderer Dienst auf `LOCAL_PORT`?
 
 ### Falsches oder kein Modell in Cursor
@@ -596,28 +591,28 @@ systemctl --user enable --now local-proxy
 
 ### API Key ungültig nach Neustart
 
-- Normal: neuer `session_proxy_token` pro Lauf
+- Normal: neuer `proxy_token` pro Lauf
 - Key aus frischer `session.json` oder GUI in Cursor aktualisieren
 
 ---
 
-## 13. Unterschied zum AWS-Tunnel
+## 13. Unterschied zu Remote-Zugriff
 
-| | **local_proxy** | **tunnel.client + AWS** |
+| | **local_proxy** | **reverse_https (AWS)** |
 |---|---|---|
-| Server | Lokal, selber Prozess | EC2 + nginx |
+| Server | Lokal, ein Prozess | EC2 + nginx |
 | Erreichbarkeit | Nur dieser Rechner (via hosts) | Öffentlich über Internet |
 | TLS | Selbstsigniert, lokale Domain | Let's Encrypt |
-| Konfiguration | `local_proxy.env` | `.env` mit `TUNNEL_*`, AWS-Deploy |
+| Konfiguration | `local_proxy.env` | AWS-Deploy, Tunnel-Setup |
 | Doku | Diese Datei | [reverse_https/INSTALLATION.md](https://github.com/fexperts-dev/reverse_https/blob/main/INSTALLATION.md) |
 
-Für Team- oder Remote-Zugriff siehe **[fexperts-dev/reverse_https](https://github.com/fexperts-dev/reverse_https)** (AWS-Tunnel).
+Für Team- oder Remote-Zugriff siehe **[fexperts-dev/reverse_https](https://github.com/fexperts-dev/reverse_https)**.
 
 ---
 
 ## 14. Sicherheitshinweise
 
-- **`registration.secret`** und **`session.json`** nicht ins Git committen.
+- **`session.json`** nicht ins Git committen.
 - Der Dienst bindet an **`0.0.0.0`**. Auf Rechnern mit untrusted Netzwerk den Port in der
   Firewall blockieren oder nur lokal nutzen (Zugriff erfolgt ohnehin über `127.0.0.1`).
 - Session-Tokens sind kurzlebig pro Lauf; bei Bedarf local_proxy neu starten.

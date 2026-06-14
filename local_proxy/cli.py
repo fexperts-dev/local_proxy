@@ -6,16 +6,15 @@ import argparse
 import asyncio
 import logging
 
-from tunnel.client import setup_logging
-
 from .config import load_config
+from .logging_setup import setup_logging
 from .service import LocalProxy
 
 log = logging.getLogger("local_proxy.cli")
 
 
 def _print_session(payload: dict) -> None:
-    """Print IDE connection details after tunnel registration."""
+    """Print IDE connection details after the proxy starts."""
     print()
     print("=== IDE configuration ===")
     print(f"Base URL:  {payload.get('api_base_url', '—')}")
@@ -29,7 +28,7 @@ def _print_session(payload: dict) -> None:
 def main() -> None:
     """Parse CLI arguments, load config, and run the combined local proxy."""
     parser = argparse.ArgumentParser(
-        description="Local proxy: tunnel server + client for LM Studio on this machine",
+        description="Local proxy for LM Studio on this machine",
     )
     parser.add_argument(
         "--domain",
@@ -59,7 +58,7 @@ def main() -> None:
 
     setup_logging(config.log_level, str(config.log_file))
 
-    proxy = LocalProxy(config, on_registered=_print_session)
+    proxy = LocalProxy(config, on_session_ready=_print_session)
 
     async def run() -> None:
         try:

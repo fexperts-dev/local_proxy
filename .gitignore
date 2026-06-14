@@ -13,4 +13,3 @@ tests/.local_proxy-test/
 .DS_Store
 *.pem
 *.key
-registration.secret

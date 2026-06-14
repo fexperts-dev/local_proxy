@@ -41,10 +41,7 @@ I wanted to use **Cursor** (and similar IDEs) with **my own locally running mode
 
 ## What `local_proxy` does
 
-On **your machine**, `local_proxy` starts at once:
-
-- a **tunnel server** (HTTPS API, WebSocket `/_tunnel`, `/healthz`)
-- a **tunnel client** that forwards requests to **LM Studio**
+On **your machine**, `local_proxy` starts a local **HTTPS reverse proxy** that forwards OpenAI-compatible requests to **LM Studio**.
 
 All in **one Python process**, one port (default **8443** with TLS).
 
@@ -53,10 +50,12 @@ All in **one Python process**, one port (default **8443** with TLS).
        │  HTTPS  https://api.lmstudio.local:8443/v1/…
        │  (/etc/hosts → 127.0.0.1)
        ▼
-  local_proxy  ── server ◄──WS──► client ──HTTP──►  LM Studio :1234
+  local_proxy  ──HTTP──►  LM Studio :1234
 ```
 
-You need **no AWS instance**, **no public domain**, **no nginx**. Wi‑Fi isn’t required for inference — everything stays on localhost.
+You need **no AWS instance**, **no public domain**, **no nginx**, **no WebSocket tunnel**. Wi‑Fi isn’t required for inference — everything stays on localhost.
+
+On startup, `local_proxy` generates a session API key and writes it to `~/.local_proxy/session.json` for easy copy-paste into Cursor.
 
 There’s also an optional **desktop GUI** (`python -m local_proxy --gui`) with copyable fields for base URL, API key, and model IDs.
 
@@ -92,7 +91,7 @@ After startup, the console shows:
 ```
 === IDE configuration ===
 Base URL:  https://api.lmstudio.local:8443/v1
-API Key:   <session_proxy_token>
+API Key:   <proxy_token>
 ```
 
 The same values are in `~/.local_proxy/session.json`.
@@ -158,15 +157,15 @@ Then **fully quit** Cursor and reopen it.
 
 ---
 
-## When to use `local_proxy` vs. the AWS tunnel
+## When to use `local_proxy` vs. remote access
 
 | Scenario | Recommendation |
 |---|---|
 | **This machine only**, LM Studio local | **`local_proxy`** |
 | Access from **anywhere** / team over the internet | **[reverse_https](https://github.com/fexperts-dev/reverse_https)** (AWS + nginx) |
-| Multiple machines on a **LAN** | Gateway with `tunnel.server` + clients |
+| Multiple machines on a **LAN** | Gateway with **reverse_https** on a shared host |
 
-Both share the same tunnel logic — `local_proxy` is the **local shortcut** without infrastructure.
+`local_proxy` is the **local shortcut** — a direct HTTP proxy with no remote infrastructure.
 
 ---
 

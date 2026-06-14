@@ -22,7 +22,7 @@ def _load_dotenv(path: Path) -> None:
 
 @dataclass
 class LocalProxyConfig:
-    """Runtime settings for the combined tunnel server and client."""
+    """Runtime settings for the local LM Studio proxy."""
 
     domain: str
     port: int
@@ -41,20 +41,9 @@ class LocalProxyConfig:
         return f"{scheme}://{self.domain}:{self.port}"
 
     @property
-    def tunnel_url(self) -> str:
-        """WebSocket URL for the embedded tunnel client (loopback)."""
-        scheme = "wss" if self.use_tls else "ws"
-        return f"{scheme}://127.0.0.1:{self.port}/_tunnel"
-
-    @property
     def cursor_base_url(self) -> str:
         """OpenAI-compatible API base URL for Cursor and similar IDEs."""
         return f"{self.public_base_url}/v1"
-
-    @property
-    def registration_secret_path(self) -> Path:
-        """Path to the shared multi-client registration secret file."""
-        return self.data_dir / "registration.secret"
 
 
 def load_config() -> LocalProxyConfig:

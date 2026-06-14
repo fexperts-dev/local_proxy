@@ -44,10 +44,10 @@ async def main():
 
     session_payload: dict = {}
 
-    def on_registered(payload: dict) -> None:
+    def on_session_ready(payload: dict) -> None:
         session_payload.update(payload)
 
-    proxy = LocalProxy(config, on_registered=on_registered)
+    proxy = LocalProxy(config, on_session_ready=on_session_ready)
     task = asyncio.create_task(proxy.run_forever())
     await asyncio.sleep(0.8)
 
