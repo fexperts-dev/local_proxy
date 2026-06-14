@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-proxy"
+version = "1.0.0"
+description = "Local LM Studio proxy for Cursor via /etc/hosts (no AWS required)"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "aiohttp>=3.9,<4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/fexperts-dev/local_proxy"
+Repository = "https://github.com/fexperts-dev/local_proxy"
+
+[tool.setuptools.packages.find]
+include = ["local_proxy*", "tunnel*"]

@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+local_proxy.env
+*.log
+session.json
+.local_proxy/
+tests/.local_proxy-test/
+.idea/
+.DS_Store
+*.pem
+*.key
+registration.secret

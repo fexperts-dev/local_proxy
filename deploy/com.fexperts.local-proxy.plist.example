@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.fexperts.local-proxy</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/path/to/local_proxy/.venv/bin/python</string>
+    <string>-m</string>
+    <string>local_proxy</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/path/to/local_proxy</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>NO_PROXY</key>
+    <string>127.0.0.1,localhost,api.lmstudio.local,.lmstudio.local</string>
+  </dict>
+</dict>
+</plist>
