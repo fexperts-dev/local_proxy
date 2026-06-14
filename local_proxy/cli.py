@@ -15,7 +15,7 @@ log = logging.getLogger("local_proxy.cli")
 
 
 def _print_session(payload: dict) -> None:
-    """Print IDE connection details after tunnel registration."""
+    """Print IDE connection details after startup."""
     print()
     print("=== IDE configuration ===")
     print(f"Base URL:  {payload.get('api_base_url', '—')}")
