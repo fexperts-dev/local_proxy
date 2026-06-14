@@ -10,13 +10,26 @@ from typing import Callable, Optional
 
 from aiohttp import web
 
-from tunnel.client import TunnelClient, generate_session_token, write_session_file
+from tunnel.client import TunnelClient
 from tunnel.server import build_app
 
 from .certs import ensure_self_signed_cert
 from .config import LocalProxyConfig
 
 log = logging.getLogger("local_proxy")
+
+
+def load_or_create_registration_secret(path) -> str:
+    """Read the registration secret from *path* or generate and persist a new one."""
+    if path.is_file():
+        value = path.read_text(encoding="utf-8").strip()
+        if value:
+            return value
+    value = secrets.token_urlsafe(32)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(value + "\n", encoding="utf-8")
+    log.info("Created registration secret at %s", path)
+    return value
 
 
 class LocalProxy:
@@ -33,11 +46,13 @@ class LocalProxy:
         self._site: Optional[web.TCPSite] = None
         self._client: Optional[TunnelClient] = None
         self._client_task: Optional[asyncio.Task] = None
+        self._registration_secret = ""
 
     async def start(self) -> None:
         """Start the HTTP(S) server and embedded tunnel client."""
-        tunnel_token = secrets.token_urlsafe(32)
-        proxy_token = generate_session_token()
+        self._registration_secret = load_or_create_registration_secret(
+            self.config.registration_secret_path
+        )
 
         ssl_context = None
         if self.config.use_tls:
@@ -50,8 +65,7 @@ class LocalProxy:
             log.info("TLS enabled (%s)", certfile)
 
         app = build_app(
-            token=tunnel_token,
-            proxy_token=proxy_token,
+            registration_secret=self._registration_secret,
             public_api_base=self.config.public_base_url,
         )
         self._runner = web.AppRunner(app, access_log=None)
@@ -65,28 +79,22 @@ class LocalProxy:
         await self._site.start()
         log.info("Server listening on %s", self.config.public_base_url)
 
-        payload = {
-            "client_id": self.config.client_id,
-            "proxy_token": proxy_token,
-            "api_base_url": self.config.cursor_base_url,
-            "target": self.config.lmstudio_url,
-        }
-        write_session_file(self.config.session_file, payload)
-        log.info("Cursor API Key: %s", proxy_token)
-        log.info("Session written to %s", self.config.session_file.resolve())
-        if self.on_registered:
-            self.on_registered(payload)
-
         self._client = TunnelClient(
             self.config.tunnel_url,
             self.config.lmstudio_url,
-            token=tunnel_token,
             client_id=self.config.client_id,
+            registration_secret=self._registration_secret,
             public_api_base=self.config.public_base_url,
             session_file=str(self.config.session_file),
+            on_registered=self.on_registered,
             insecure_ssl=self.config.use_tls,
         )
         self._client_task = asyncio.create_task(self._client.run_forever())
+
+        for _ in range(50):
+            if self.config.session_file.is_file():
+                break
+            await asyncio.sleep(0.1)
 
         log.info("IDE Base URL: %s", self.config.cursor_base_url)
         log.info("Hosts entry required: 127.0.0.1 %s", self.config.domain)

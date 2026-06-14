@@ -51,6 +51,11 @@ class LocalProxyConfig:
         """OpenAI-compatible API base URL for Cursor and similar IDEs."""
         return f"{self.public_base_url}/v1"
 
+    @property
+    def registration_secret_path(self) -> Path:
+        """Path to the shared multi-client registration secret file."""
+        return self.data_dir / "registration.secret"
+
 
 def load_config() -> LocalProxyConfig:
     """Build config from ``local_proxy.env``, ``.env``, and environment variables."""

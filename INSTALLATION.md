@@ -128,12 +128,21 @@ LOCAL_PROXY_LOG_LEVEL=INFO
 | `LOCAL_PROXY_LOG` | Nein | `<data_dir>/local_proxy.log` | Log-Datei |
 | `LOCAL_PROXY_SESSION_FILE` | Nein | `<data_dir>/session.json` | Session für IDE |
 
-`local_proxy.env` is loaded automatically on start (`local_proxy/config.py` reads
-`local_proxy.env` then `.env` in the repo root). No manual `source` is required when
-you run `python -m local_proxy` from the repo directory.
+`local_proxy.env` wird beim Start automatisch geladen (`local_proxy/config.py` liest
+`local_proxy.env` und danach `.env` im Repository-Root). Es ist **kein** manuelles
+`source` nötig, solange du `python -m local_proxy` aus dem Repo-Verzeichnis startest.
 
-On each start, **`session.json`** is written under `LOCAL_PROXY_DATA_DIR` with the
-current Cursor API key (`proxy_token`). No separate registration secret file is used.
+Optional — Variablen explizit in die Shell übernehmen (z. B. für Tests):
+
+```bash
+set -a
+source local_proxy.env
+set +a
+python -m local_proxy
+```
+
+**`registration.secret`** wird beim ersten Lauf automatisch unter
+`LOCAL_PROXY_DATA_DIR` erzeugt — manuell setzen ist nicht nötig.
 
 ---
 
@@ -608,7 +617,7 @@ Für Team- oder Remote-Zugriff siehe **[fexperts-dev/reverse_https](https://gith
 
 ## 14. Sicherheitshinweise
 
-- **`session.json`** and **`local_proxy.env`** must not be committed to git.
+- **`registration.secret`** und **`session.json`** nicht ins Git committen.
 - Der Dienst bindet an **`0.0.0.0`**. Auf Rechnern mit untrusted Netzwerk den Port in der
   Firewall blockieren oder nur lokal nutzen (Zugriff erfolgt ohnehin über `127.0.0.1`).
 - Session-Tokens sind kurzlebig pro Lauf; bei Bedarf local_proxy neu starten.
